@@ -8,14 +8,14 @@ np.random.seed(0)
 
 
 class NIMSqtt:
-    def __init__(self, raw_path="./dataset/raw.stl"):
+    def __init__(self, raw_path="./geometry/raw.stl"):
         self.raw = self.stl_to_point_cloud(raw_path)
         self.implant = self.raw[np.where(self.raw[:, 2] >= 0.045)]
         self.bone = self.raw[np.where(self.raw[:, 2] < 0.045)]
 
-        self.save_point_cloud(self.raw, "./dataset/raw.npy")
-        self.save_point_cloud(self.implant, "./dataset/implant.npy")
-        self.save_point_cloud(self.bone, "./dataset/bone.npy")
+        self.save_point_cloud(self.raw, "geometry/raw.npy")
+        self.save_point_cloud(self.implant, "geometry/implant.npy")
+        self.save_point_cloud(self.bone, "geometry/bone.npy")
 
     @staticmethod
     def stl_to_point_cloud(stl_filename, numpoints=500000):
