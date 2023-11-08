@@ -299,6 +299,6 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,python,jupyternotebooks
 
-geometry/kernel_points/
-geometry/kernel_influence/
-geometry/neighbor_indice/
+dataset/geometry/kernel_points/
+dataset/geometry/kernel_influence/
+dataset/geometry/neighbor_indice/
