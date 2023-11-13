@@ -12,7 +12,7 @@ class GridSampling:
         self.grid_size = grid_size
 
         # Define the grid indices to which each point belongs
-        self.grid_indices = (self.point_cloud // grid_size).astype(int)
+        self.grid_indices = np.floor(self.point_cloud / grid_size).astype(np.int32)
 
         # Get the unique grid indices
         self.unique_grid_indices = np.unique(self.grid_indices, axis=0)
@@ -32,7 +32,7 @@ class GridSampling:
         for i in range(self.unique_grid_indices.shape[0]):
             # Create a mask for the current grid cell
             mask = np.zeros(self.point_cloud.shape[0], dtype=bool)
-            mask[np.where(np.all(self.unique_grid_indices[i] == self.grid_indices, axis=1))] = True
+            mask[np.all(self.unique_grid_indices[i] == self.grid_indices, axis=1)] = True
 
             # Get the points in the current grid cell
             sampled_point_cloud.append(self.point_cloud[mask])
