@@ -12,6 +12,7 @@ class Kernel:
                  h: float,
                  save_path: str = None):
         self.kernel_point = kernel_point
+        self.number_of_kernel = kernel_point.shape[0]
         self.center_point_in_grid = center_point_in_grid
         self.point_cloud_in_grid = point_cloud_in_grid
         self.h = h
@@ -32,6 +33,7 @@ class Kernel:
             features = self.gaussian(grid_order, self.kernel_point[index])
             features = features.reshape(self.kernel_point.shape[1], -1)
             features = features.sum(axis=1)
+            features = features.reshape(self.number_of_kernel, -1)
             data_chunk.append(features)
 
         data_chunk = np.array(data_chunk, dtype=object)
