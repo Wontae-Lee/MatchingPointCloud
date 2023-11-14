@@ -5,9 +5,15 @@ import open3d as o3d
 
 class Kernel:
 
-    def __init__(self, kernel_point: np.array, geometry_point_cloud: np.array, h: float, save_path: str = None):
+    def __init__(self,
+                 kernel_point: np.array,
+                 center_point_in_grid: np.array,
+                 point_cloud_in_grid: np.array,
+                 h: float,
+                 save_path: str = None):
         self.kernel_point = kernel_point
-        self.geometry_point_cloud = geometry_point_cloud
+        self.center_point_in_grid = center_point_in_grid
+        self.point_cloud_in_grid = point_cloud_in_grid
         self.h = h
         self.sigma = 1 / (torch.pi ** (3 / 2) * h ** 3)
         self.data = self.__compute()
@@ -15,11 +21,18 @@ class Kernel:
             np.save(save_path, self.data)
 
     def __compute(self):
+        self.kernel_point = np.expand_dims(self.kernel_point, axis=0)
+        self.center_point_in_grid = self.center_point_in_grid.reshape(-1, 1, 1, 3)
+        self.kernel_point = self.center_point_in_grid + self.kernel_point
+        self.kernel_point = self.kernel_point.reshape(self.center_point_in_grid.shape[0], -1, 3)
 
         data_chunk = []
-        for point_cloud1 in self.kernel_point:
-            for point_cloud2 in self.geometry_point_cloud:
-                data_chunk.append([self.gaussian(point_cloud1, point_cloud2)])
+
+        for index, grid_order in enumerate(self.point_cloud_in_grid):
+            features = self.gaussian(grid_order, self.kernel_point[index])
+            features = features.reshape(self.kernel_point.shape[1], -1)
+            features = features.sum(axis=1)
+            data_chunk.append(features)
 
         data_chunk = np.array(data_chunk, dtype=object)
 
@@ -31,7 +44,7 @@ class Kernel:
 
         differences = pcd_torch1 - pcd_torch2
         result = self.sigma * torch.exp((self.h / torch.sqrt(torch.sum(differences ** 2, dim=2))) ** 2)
-        result = result.to_numpy()
+        result = result.cpu().numpy()
 
         return result
 
