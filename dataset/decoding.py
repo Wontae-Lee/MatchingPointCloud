@@ -4,7 +4,7 @@ import numpy as np
 class Decoding:
 
     def __init__(self,
-                 raw_point_cloud: np.array,
+                 implant: np.array,
                  implant_sample3: np.array,
                  implant_center2: np.array,
                  implant_sample2: np.array,
@@ -15,6 +15,7 @@ class Decoding:
                  implant_feature2: np.array,
                  implant_feature1: np.array,
 
+                 bone: np.array,
                  bone_sample3: np.array,
                  bone_center2: np.array,
                  bone_sample2: np.array,
@@ -42,7 +43,7 @@ class Decoding:
         """
 
         # 외부에서온 데이터
-        self.raw_point_cloud = raw_point_cloud
+        self.implant = implant
         self.implant_sample3 = implant_sample3
         self.implant_center2 = implant_center2
         self.implant_sample2 = implant_sample2
@@ -53,6 +54,7 @@ class Decoding:
         self.implant_feature2 = implant_feature2
         self.implant_feature1 = implant_feature1
 
+        self.bone = bone
         self.bone_sample3 = bone_sample3
         self.bone_center2 = bone_center2
         self.bone_sample2 = bone_sample2
@@ -64,11 +66,11 @@ class Decoding:
         self.bone_feature1 = bone_feature1
 
         # 내부에서 계산되는 데이터
-
         self.desampled_raw_point_cloud = np.zeros((0, 3))
 
-    def __analyis_feature(self):
+        self.__analyis_feature()
 
+    def __analyis_feature(self):
         # features: 각 샘필링된 grid에서 각각의 포인트 클라우드와 커널 포인트들 사이의 거리
         # features shape: (number of grid samples, number of kernel, number of points in a grid)
         # 각 grid 안에서 gaussian kernel을 적용한 후, 합이 feature가 된다.
@@ -81,6 +83,39 @@ class Decoding:
         result_feature3 = np.abs(implant_feature3 - bone_feature3)
         min_value_location3 = self.min_value_location(result_feature3)
 
+        implant_indices2, _ = self.return_points_in_sample(self.implant_sample3[min_value_location3[0][0]],
+                                                           self.implant_center2)
+
+        bone_indices2, _ = self.return_points_in_sample(self.bone_sample3[min_value_location3[0][1]],
+                                                        self.bone_center2)
+
+        # features3 에서 찾은 grid에서 가장 차이가 적게 나는 grid를 찾아보자
+        implant_feature2 = self.implant_feature2[implant_indices2].sum(axis=2).sum(axis=1).reshape(-1, 1)
+        bone_feature2 = self.bone_feature2[bone_indices2].sum(axis=2).sum(axis=1).reshape(1, -1)
+
+        result_feature2 = np.abs(implant_feature2 - bone_feature2)
+        min_value_location2 = self.min_value_location(result_feature2)
+
+        implant_indices1, _ = self.return_points_in_sample(self.implant_sample2[min_value_location2[0][0]],
+                                                           self.implant_center1)
+
+        bone_indices1, _ = self.return_points_in_sample(self.bone_sample2[min_value_location2[0][1]],
+                                                        self.bone_center1)
+
+        implant_feature1 = self.implant_feature1[implant_indices1].sum(axis=2).sum(axis=1).reshape(-1, 1)
+        bone_feature1 = self.bone_feature1[bone_indices1].sum(axis=2).sum(axis=1).reshape(1, -1)
+
+        result_feature1 = np.abs(implant_feature1 - bone_feature1)
+        min_value_location1 = self.min_value_location(result_feature1)
+
+        implant_indices0, _ = self.return_points_in_sample(self.implant_sample1[min_value_location1[0][0]],
+                                                           self.implant)
+
+        bone_indices0, _ = self.return_points_in_sample(self.bone_sample1[min_value_location1[0][1]],
+                                                        self.bone)
+
+        np.save('.implant_indices0.npy', implant_indices0)
+        np.save('.bone_indices0.npy', bone_indices0)
     @staticmethod
     def min_value_location(array2d: np.array):
         # 최솟값의 위치 찾기
@@ -88,20 +123,6 @@ class Decoding:
         min_value_location = np.hstack((min_value_location[0].reshape(-1, 1), min_value_location[1].reshape(-1, 1)))
 
         return min_value_location
-
-    def get_desampled_point_cloud(self, subsample_grid_number):
-
-        indices, points = self.return_points_in_sample(self.sample3[subsample_grid_number], self.implant_center2)
-
-        for index in indices:
-
-            indices_in_grid, points_in_grid = self.return_points_in_sample(self.implant_sample2[index],
-                                                                           self.implant_center1)
-
-            for index_raw_point_cloud in indices_in_grid:
-
-                for point in self.implant_sample1[index_raw_point_cloud]:
-                    self.desampled_raw_point_cloud = np.vstack((self.desampled_raw_point_cloud, point))
 
     @staticmethod
     def return_points_in_sample(sample, center):
@@ -125,7 +146,7 @@ class Decoding:
 
 if __name__ == '__main__':
     decoding = Decoding(
-        raw_point_cloud=np.load('geometry/raw.npy', allow_pickle=True),
+        implant=np.load('geometry/implant.npy', allow_pickle=True),
         implant_sample3=np.load('geometry/implant_sample3.npy', allow_pickle=True),
         implant_center2=np.load('geometry/implant_center2.npy', allow_pickle=True),
         implant_sample2=np.load('geometry/implant_sample2.npy', allow_pickle=True),
@@ -133,8 +154,17 @@ if __name__ == '__main__':
         implant_sample1=np.load('geometry/implant_sample1.npy', allow_pickle=True),
 
         implant_feature3=np.load('features/implant_feature3.npy', allow_pickle=True),
-        implant_feature2=np.load('features/implant_feature2.npy'),
-        implant_feature1=np.load('features/implant_feature1.npy'),
+        implant_feature2=np.load('features/implant_feature2.npy', allow_pickle=True),
+        implant_feature1=np.load('features/implant_feature1.npy', allow_pickle=True),
 
-        bone_sample3=np.load('geometry/bone_sample3.npy'),
+        bone=np.load('geometry/bone.npy', allow_pickle=True),
+        bone_sample3=np.load('geometry/bone_sample3.npy', allow_pickle=True),
+        bone_center2=np.load('geometry/bone_center2.npy', allow_pickle=True),
+        bone_sample2=np.load('geometry/bone_sample2.npy', allow_pickle=True),
+        bone_center1=np.load('geometry/bone_center1.npy', allow_pickle=True),
+        bone_sample1=np.load('geometry/bone_sample1.npy', allow_pickle=True),
+
+        bone_feature3=np.load('features/bone_feature3.npy', allow_pickle=True),
+        bone_feature2=np.load('features/bone_feature2.npy', allow_pickle=True),
+        bone_feature1=np.load('features/bone_feature1.npy', allow_pickle=True),
     )
