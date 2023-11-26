@@ -3,10 +3,10 @@ import numpy as np
 
 class GridSampling:
 
-    def __init__(self, point_cloud_path: str, grid_size: np.array, save_sample_path: str = None,
+    def __init__(self, point_cloud: np.array, grid_size: np.array, save_sample_path: str = None,
                  save_center_path: str = None):
         # Load the point cloud
-        self.point_cloud = np.load(point_cloud_path)
+        self.point_cloud = point_cloud
 
         # define the grid size
         self.grid_size = grid_size
