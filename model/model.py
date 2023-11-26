@@ -5,10 +5,11 @@ from helpers.sampling import GridSampling
 
 class Layer:
 
-    def __init__(self, kernel_size: int, radius: float):
+    def __init__(self, kernel_size: int, radius: float, smoothing_length: float):
         self.kernel_size = kernel_size
         self.radius = radius
         self.kernel_point = KernelPointGenerator(kernel_size, radius).kernel_points
+        self.smoothing_length = smoothing_length
         self.sampling_grid_size = np.array([radius * 2, radius * 2, radius * 2])
 
 
@@ -19,6 +20,7 @@ class Model:
         self.bone = bone
         self.number_of_layers = 0
         self.kernel_points = []
+        self.smoothing_lengths = []
         self.sampled_implant = [implant]
         self.sampled_bone = [bone]
 
@@ -28,6 +30,9 @@ class Model:
 
         # add the kernel points to the list
         self.kernel_points.append(layer.kernel_point)
+
+        # add the smoothing length to the list
+        self.smoothing_lengths.append(layer.smoothing_length)
 
         # sampling the point clouds
         self.__sampling(layer.sampling_grid_size)
@@ -42,7 +47,19 @@ class Model:
         self.sampled_bone.append(bone_sampling)
 
     def train(self):
-        pass
+
+        # Get the index of the last layer
+        index = self.number_of_layers
+
+        while True:
+            # current index
+            index -= 1
+
+
+
+            # Check if the number of layers is zero
+            if index == 0:
+                break
 
 
 if __name__ == "__main__":
