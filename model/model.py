@@ -21,8 +21,10 @@ class Model:
         self.number_of_layers = 0
         self.kernel_points = []
         self.smoothing_lengths = []
-        self.sampled_implant = [implant]
-        self.sampled_bone = [bone]
+        self.sampled_implant = []
+        self.center_implant_point_in_grid = [implant]
+        self.sampled_bone = []
+        self.center_bone_point_in_grid = [bone]
 
     def add_layer(self, layer: Layer):
         # count the number of layers
@@ -39,12 +41,16 @@ class Model:
 
     def __sampling(self, sampling_grid_size: np.array):
         # Sample the point clouds
-        implant_sampling = GridSampling(self.sampled_implant[-1], sampling_grid_size).sampled_point_cloud
-        bone_sampling = GridSampling(self.sampled_bone[-1], sampling_grid_size).sampled_point_cloud
+        implant_sampling = GridSampling(self.center_implant_point_in_grid[-1], sampling_grid_size)
+        bone_sampling = GridSampling(self.center_bone_point_in_grid[-1], sampling_grid_size)
 
         # Add the sampled point clouds to the list
-        self.sampled_implant.append(implant_sampling)
-        self.sampled_bone.append(bone_sampling)
+        self.sampled_implant.append(implant_sampling.sampled_point_cloud)
+        self.sampled_bone.append(bone_sampling.sampled_point_cloud)
+
+        # Add the center point of the sampling grid to the list
+        self.center_implant_point_in_grid.append(implant_sampling.center_point_in_grid)
+        self.center_bone_point_in_grid.append(bone_sampling.center_point_in_grid)
 
     def train(self):
 
@@ -54,8 +60,6 @@ class Model:
         while True:
             # current index
             index -= 1
-
-
 
             # Check if the number of layers is zero
             if index == 0:
@@ -67,3 +71,6 @@ if __name__ == "__main__":
     bone = np.load('../dataset/geometry/bone.npy')
 
     model = Model(implant, bone)
+    model.add_layer(Layer(64, 4, 0.25))
+    model.add_layer(Layer(128, 8, 0.50))
+    model.train()

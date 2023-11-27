@@ -20,6 +20,9 @@ class GridSampling:
         # Initialize the sampled point cloud
         self.sampled_point_cloud = self.__sampling()
 
+        # Center point of the sampling grid
+        self.center_point_in_grid = self.unique_grid_indices * self.grid_size + self.grid_size / 2
+
         # Save the sampled point cloud
         if save_sample_path is not None:
             self.save_sampled_point_cloud(save_sample_path)
