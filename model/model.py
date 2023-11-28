@@ -1,5 +1,6 @@
 import numpy as np
 from kernel.kernel_point_generator import KernelPointGenerator
+from kernel.gaussian_kernel import GaussianKernel
 from helpers.sampling import GridSampling
 
 
@@ -16,41 +17,72 @@ class Layer:
 class Model:
 
     def __init__(self, implant: np.array, bone: np.array):
+
+        # implant and bone point clouds
         self.implant = implant
         self.bone = bone
+
+        # number of layers
         self.number_of_layers = 0
-        self.kernel_points = []
-        self.smoothing_lengths = []
+
+        # sampled point clouds
         self.sampled_implant = []
-        self.center_implant_point_in_grid = [implant]
         self.sampled_bone = []
-        self.center_bone_point_in_grid = [bone]
+        # center point of the sampling grid
+        self.center_point_implant = []
+        self.center_point_bone = []
+
+        # feautures
+        self.features_implant = []
+        self.features_bone = []
 
     def add_layer(self, layer: Layer):
         # count the number of layers
         self.number_of_layers += 1
 
-        # add the kernel points to the list
-        self.kernel_points.append(layer.kernel_point)
+        if self.number_of_layers == 1:
 
-        # add the smoothing length to the list
-        self.smoothing_lengths.append(layer.smoothing_length)
+            center_point_implant = self.implant
+            center_point_bone = self.bone
+        else:
 
-        # sampling the point clouds
-        self.__sampling(layer.sampling_grid_size)
+            center_point_implant = self.center_point_implant[-1]
+            center_point_bone = self.center_point_bone[-1]
 
-    def __sampling(self, sampling_grid_size: np.array):
         # Sample the point clouds
-        implant_sampling = GridSampling(self.center_implant_point_in_grid[-1], sampling_grid_size)
-        bone_sampling = GridSampling(self.center_bone_point_in_grid[-1], sampling_grid_size)
+        implant_sampling = GridSampling(center_point_implant, layer.sampling_grid_size)
+        bone_sampling = GridSampling(center_point_bone, layer.sampling_grid_size)
 
+        # Samples
+        sampled_implant = implant_sampling.sampled_point_cloud
+        sampled_bone = bone_sampling.sampled_point_cloud
+
+        # center points
+        center_point_implant = implant_sampling.center_point_in_grid
+        center_point_bone = bone_sampling.center_point_in_grid
+
+        # features
+        features_implant = GaussianKernel(kernel_point=layer.kernel_point,
+                                          center_point_in_grid=center_point_implant,
+                                          point_cloud_in_grid=sampled_implant,
+                                          h=layer.smoothing_length).data
+        features_bone = GaussianKernel(kernel_point=layer.kernel_point,
+                                       center_point_in_grid=center_point_bone,
+                                       point_cloud_in_grid=sampled_bone,
+                                       h=layer.smoothing_length).data
+
+        # logging
         # Add the sampled point clouds to the list
-        self.sampled_implant.append(implant_sampling.sampled_point_cloud)
-        self.sampled_bone.append(bone_sampling.sampled_point_cloud)
+        self.sampled_implant.append(sampled_implant)
+        self.sampled_bone.append(sampled_bone)
 
         # Add the center point of the sampling grid to the list
-        self.center_implant_point_in_grid.append(implant_sampling.center_point_in_grid)
-        self.center_bone_point_in_grid.append(bone_sampling.center_point_in_grid)
+        self.center_point_implant.append(implant_sampling.center_point_in_grid)
+        self.center_point_bone.append(bone_sampling.center_point_in_grid)
+
+        # Add the features to the list
+        self.features_implant.append(features_implant.sum(axis=2).sum(axis=1))
+        self.features_bone.append(features_bone.sum(axis=2).sum(axis=1))
 
     def train(self):
 
