@@ -1,4 +1,6 @@
 import numpy as np
+import copy
+import open3d as o3d
 from kernel.kernel_point_generator import KernelPointGenerator
 from kernel.gaussian_kernel import GaussianKernel
 from helpers.sampling import GridSampling
@@ -84,18 +86,106 @@ class Model:
         self.features_implant.append(features_implant.sum(axis=2).sum(axis=1))
         self.features_bone.append(features_bone.sum(axis=2).sum(axis=1))
 
+    @staticmethod
+    def index_min_difference_features(features_implant, features_bone):
+
+        # Get the difference
+        difference = np.abs(features_implant.reshape(-1, 1) - features_bone.reshape(1, -1))
+
+        # Get the index of the minimum difference
+        min_index = np.unravel_index(np.argmin(difference, axis=None), difference.shape)
+
+        return min_index
+
+    @staticmethod
+    def unpack(value_array, center_point):
+
+        temp_value_array = copy.deepcopy(value_array)
+        if type(temp_value_array) is float:
+            temp_value_array = np.array([temp_value_array])
+
+        # index list to store the corresponding points
+        index_list = []
+
+        for _, point in enumerate(temp_value_array):
+            for index, __ in enumerate(center_point):
+
+                if np.all(point == center_point[index]):
+                    index_list.append(index)
+
+        return index_list
+
+    def fix(self, array):
+
+        fix_array = np.zeros((0, 3))
+        for index, point in enumerate(array):
+            fix_array = np.vstack((fix_array, point))
+
+        return fix_array
+
     def train(self):
 
         # Get the index of the last layer
-        index = self.number_of_layers
+        index = self.number_of_layers - 1
+        min_index3 = self.index_min_difference_features(self.features_implant[index], self.features_bone[index])
 
-        while True:
-            # current index
-            index -= 1
+        # sampling from deep layers
+        # layer3
+        sample_implant3 = self.sampled_implant[index][min_index3[0]]
+        center_implant3 = self.center_point_implant[index - 1]
 
-            # Check if the number of layers is zero
-            if index == 0:
-                break
+        sample_bone3 = self.sampled_bone[index][min_index3[1]]
+        center_bone3 = self.center_point_bone[index - 1]
+
+        index_implant3 = self.unpack(sample_implant3, center_implant3)
+        index_bone3 = self.unpack(sample_bone3, center_bone3)
+
+        features_implant3 = self.features_implant[index - 1][index_implant3]
+        features_bone3 = self.features_bone[index - 1][index_bone3]
+
+        # layer2
+        min_index2 = self.index_min_difference_features(features_implant3, features_bone3)
+        implant_index2 = self.unpack(features_implant3[min_index2[0]], self.features_implant[index - 1])
+        bone_index2 = self.unpack(features_bone3[min_index2[1]], self.features_bone[index - 1])
+
+        sample_implant2 = self.sampled_implant[index - 1][implant_index2]
+        sample_implant2 = self.fix(sample_implant2)
+
+        sample_bone2 = self.sampled_bone[index - 1][bone_index2]
+        sample_bone2 = self.fix(sample_bone2)
+
+        index_implant2 = self.unpack(sample_implant2, self.center_point_implant[index - 2])
+        index_bone2 = self.unpack(sample_bone2, self.center_point_bone[index - 2])
+
+        features_implant2 = self.features_implant[index - 2][index_implant2]
+        features_bone2 = self.features_bone[index - 2][index_bone2]
+
+        # layer1
+        min_index1 = self.index_min_difference_features(features_implant2, features_bone2)
+        implant_index1 = self.unpack(features_implant2[min_index1[0]], self.features_implant[index - 2])
+        bone_index1 = self.unpack(features_bone2[min_index1[1]], self.features_bone[index - 2])
+
+        sample_implant1 = self.sampled_implant[index - 2][implant_index1]
+        sample_implant1 = self.fix(sample_implant1)
+
+        sample_bone1 = self.sampled_bone[index - 2][bone_index1]
+        sample_bone1 = self.fix(sample_bone1)
+
+        # visualize
+        result = np.vstack((sample_implant1, sample_bone1))
+        orginal = np.vstack((self.implant, self.bone))
+
+        result_pcd = o3d.geometry.PointCloud()
+        result_pcd.points = o3d.utility.Vector3dVector(result)
+        result_pcd.paint_uniform_color([1, 0.706, 0])
+
+        orginal_pcd = o3d.geometry.PointCloud()
+        orginal_pcd.points = o3d.utility.Vector3dVector(orginal)
+        orginal_pcd.paint_uniform_color([0, 0.651, 0.929])
+
+        o3d.visualization.draw_geometries([result_pcd, orginal_pcd])
+
+
 
 
 if __name__ == "__main__":
@@ -103,6 +193,7 @@ if __name__ == "__main__":
     bone = np.load('../dataset/geometry/bone.npy')
 
     model = Model(implant, bone)
-    model.add_layer(Layer(64, 4, 0.25))
-    model.add_layer(Layer(128, 8, 0.50))
+    model.add_layer(Layer(64, 4, 1.))
+    model.add_layer(Layer(128, 8, 2.00))
+    model.add_layer(Layer(256, 16, 4.00))
     model.train()
