@@ -302,3 +302,4 @@ pyrightconfig.json
 dataset/geometry/kernel_points/
 dataset/geometry/kernel_influence/
 dataset/geometry/neighbor_indice/
+.model/features/
