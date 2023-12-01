@@ -31,6 +31,7 @@ class Model:
         # sampled point clouds
         self.sampled_implant = []
         self.sampled_bone = []
+
         # center point of the sampling grid
         self.center_point_implant = []
         self.center_point_bone = []
@@ -38,6 +39,10 @@ class Model:
         # feautures
         self.features_implant = []
         self.features_bone = []
+
+        # The raw point clouds correspond to each layer
+        self.corresponding_raw_implant = []
+        self.corresponding_raw_bone = []
 
     def add_layer(self, layer: Layer, saved: bool = False):
 
@@ -184,7 +189,6 @@ class Model:
         # unique
         index_implant = np.unique(index_implant)
         index_bone = np.unique(index_bone)
-
         return index_implant, index_bone
 
     def return_corresponding_features(self, layer, index_implant, index_bone):
@@ -220,11 +224,8 @@ class Model:
             # Update the layer
             layer -= 1
             if layer == 0:
-                raw_index_implant = self.compact(self.sampled_implant[layer][index_implant])
-                raw_index_bone = self.compact(self.sampled_bone[layer][index_bone])
-
-                # raw_index_implant = self.implant[self.corresponding(self.features_implant[layer], features_implant)]
-                # raw_index_bone = self.bone[self.corresponding(self.features_bone[layer], features_bone)]
+                raw_index_implant = self.compact(self.sampled_implant[0][index_implant])
+                raw_index_bone = self.compact(self.sampled_bone[0][index_bone])
 
                 # features가 같아도 다른 포인트 상위 레이어에서 다른 셈플에 들어갈 수 있으니까 그걸 제외해야한다.
                 break
@@ -233,17 +234,20 @@ class Model:
         implant = raw_index_implant
         bone = raw_index_bone
 
+        print(implant.shape)
+        print(bone.shape)
+
         all_points = np.vstack((implant, bone))
         all_points_pcd = o3d.geometry.PointCloud()
         all_points_pcd.points = o3d.utility.Vector3dVector(all_points)
         all_points_pcd.paint_uniform_color([1, 0.706, 0])
-
+        # o3d.visualization.draw_geometries([all_points_pcd])
         raw_points = np.vstack((self.implant, self.bone))
         raw_points_pcd = o3d.geometry.PointCloud()
         raw_points_pcd.points = o3d.utility.Vector3dVector(raw_points)
         raw_points_pcd.paint_uniform_color([0, 0.651, 0.929])
 
-        o3d.visualization.draw_geometries([all_points_pcd, raw_points_pcd])
+        o3d.visualization.draw_geometries([all_points_pcd,raw_points_pcd])
 
 
 if __name__ == "__main__":
@@ -251,7 +255,7 @@ if __name__ == "__main__":
     bone = np.load('../dataset/geometry/bone.npy')
 
     model = Model(implant, bone)
-    model.add_layer(Layer(256, 0.5, 0.25), saved=True)
-    model.add_layer(Layer(512, 1, 0.5), saved=True)
-    model.add_layer(Layer(1024, 2, 1.0), saved=True)
+    model.add_layer(Layer(256, 0.5, 0.25), saved=False)
+    model.add_layer(Layer(512, 1, 0.5), saved=False)
+    model.add_layer(Layer(1024, 2, 1.0), saved=False)
     model.train()
