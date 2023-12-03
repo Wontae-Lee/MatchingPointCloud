@@ -227,6 +227,8 @@ class Model:
                 raw_index_implant = self.compact(self.sampled_implant[0][index_implant])
                 raw_index_bone = self.compact(self.sampled_bone[0][index_bone])
 
+
+
                 # features가 같아도 다른 포인트 상위 레이어에서 다른 셈플에 들어갈 수 있으니까 그걸 제외해야한다.
                 break
 
@@ -255,7 +257,7 @@ if __name__ == "__main__":
     bone = np.load('../dataset/geometry/bone.npy')
 
     model = Model(implant, bone)
-    model.add_layer(Layer(256, 0.5, 0.25), saved=False)
-    model.add_layer(Layer(512, 1, 0.5), saved=False)
-    model.add_layer(Layer(1024, 2, 1.0), saved=False)
+    model.add_layer(Layer(64, 1, 0.5), saved=True)
+    model.add_layer(Layer(128, 2, 1.0), saved=True)
+    model.add_layer(Layer(256,4, 2.0), saved=True)
     model.train()
