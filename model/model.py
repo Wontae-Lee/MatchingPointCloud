@@ -224,8 +224,13 @@ class Model:
             # Update the layer
             layer -= 1
             if layer == 0:
-                raw_index_implant = self.compact(self.sampled_implant[0][index_implant])
-                raw_index_bone = self.compact(self.sampled_bone[0][index_bone])
+
+                index_min = self.index_min_difference_features(self.features_implant[0][index_implant],
+                                                               self.features_bone[0][index_bone])
+
+
+                raw_index_implant = self.compact(self.sampled_implant[0][index_implant][index_min[:, 0]])
+                raw_index_bone = self.compact(self.sampled_bone[0][index_bone][index_min[:, 1]])
 
                 # features가 같아도 다른 포인트 상위 레이어에서 다른 셈플에 들어갈 수 있으니까 그걸 제외해야한다.
                 break
@@ -247,6 +252,9 @@ if __name__ == "__main__":
     model.add_layer(Layer(1024, 4, 2.0), saved=False)
     imp, bon = model.train()
 
+    implant[:, 2] -= 50
+    imp[:, 2] -= 50
+
     # visualize
     print(imp.shape)
     print(bon.shape)
@@ -254,10 +262,11 @@ if __name__ == "__main__":
     all_points = np.vstack((imp, bon))
     all_points_pcd = o3d.geometry.PointCloud()
     all_points_pcd.points = o3d.utility.Vector3dVector(all_points)
-    all_points_pcd.paint_uniform_color([1, 0.706, 0])
+    all_points_pcd.paint_uniform_color([0, 0.3, 0])
     # o3d.visualization.draw_geometries([all_points_pcd])
     raw_points = np.vstack((implant, bone))
     raw_points_pcd = o3d.geometry.PointCloud()
     raw_points_pcd.points = o3d.utility.Vector3dVector(raw_points)
+    raw_points_pcd.paint_uniform_color([0, 0.991, 0.929])
 
     o3d.visualization.draw_geometries([all_points_pcd, raw_points_pcd])
