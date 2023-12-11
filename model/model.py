@@ -224,10 +224,8 @@ class Model:
             # Update the layer
             layer -= 1
             if layer == 0:
-
                 index_min = self.index_min_difference_features(self.features_implant[0][index_implant],
                                                                self.features_bone[0][index_bone])
-
 
                 raw_index_implant = self.compact(self.sampled_implant[0][index_implant][index_min[:, 0]])
                 raw_index_bone = self.compact(self.sampled_bone[0][index_bone][index_min[:, 1]])
